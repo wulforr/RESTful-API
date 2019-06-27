@@ -1,53 +1,111 @@
 let express = require("express")
 let app = express();
-let bodyparser = require("body-parser");
 let mongoose = require("mongoose")
+let morgan = require("morgan")
 
 
-mongoose.connect('mongodb://localhost:27017/user', { useNewUrlParser: true });
-/*// mongoose.connect("mongodb+srv://wulforr:wulfor8397@cluster0-rpwjk.mongodb.net/test?retryWrites=true&w=majority" ,{useNewUrlParser: true, useCreateIndex: true})
-// .then(()=>{
-//     console.log("connected to db");
-// })
-// .catch((err)=>{
-//     console.log("error:",err);
-// })
-*/
-app.use(bodyparser.json());
-app.use(bodyparser.urlencoded({ extended: true }));
+mongoose.connect('mongodb://localhost:27017/shaurya', { useNewUrlParser: true });
+
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.use(express.static("public"));
 
+app.use(morgan('dev'))
 
-
-let userSchema = new mongoose.Schema({
+const userSchema = new mongoose.Schema({
+    _id: mongoose.Schema.Types.ObjectId,
     name: String,
+    price: Number
 })
 
 let product = mongoose.model("User",userSchema);
 
 
+app.use((req,res,next) => {
+    res.header("Access-Control-Allow-Origin", "*")
+    res.header("Access-Control-Allow-Headers","*")
 
-// app.use((res) => {
-//     res.status(200).json({
-//         message:"hi well done"
-//     })
-// })
+    if(req.method === "OPTIONS"){
+        res.header("Access-Control-Allow-Methods","POST,GET,PUT,PATCH,DELETE")
+        return res.status(200).json({})
+    }
 
-app.post("/name" ,(req,res) => {
-    let prodname = req.query.name
+    next()
+})
+
+app.post("/addprod" ,(req,res) => {
+    let prodname = req.body.name
+    let price = req.body.price
     product.create({
-        "name" : prodname
+        "_id" : mongoose.Types.ObjectId(),
+        "name" : prodname,
+        "price":price
     },function(err,respon){
         if (err)
         console.log(err)
         else
-        res.send("created")
+        res.send(respon)
     })
 })
 
-app.get("/",(req,res) => {
-    res.send("Not a valid path");
+app.get("/prod",(req,res) => {
+    let prodname = req.query.name
+    product.find({name:prodname},(err,respon) =>{
+        if(err)
+        console.log(err)
+        else
+        {
+            if(respon.length == 0)
+            res.send("Not Found")
+            else
+            res.send(respon)
+
+        }
+        
+    })
+})
+
+app.patch("/:prodId",(req,res) => {
+    let prodid = req.params.prodId
+    console.log(prodid)
+    const updateOps = {}
+    for(const ops of req.body){
+        updateOps[ops.propName] = ops.value
+    }
+    console.log(prodid)
+    product.updateOne({ _id: prodid} , {$set: updateOps}, {upsert: true})
+    .exec()
+    .then(result => res.send(result))
+    .catch(err => res.send(err))
+})
+
+
+
+app.delete("/:prodId",(req,res) => {
+    let prodid = req.params.prodId
+    product.deleteOne({ _id: prodid})
+    .exec()
+    .then(result => 
+            res.send(result)
+    )
+    .catch(err => console.log(err))
+})
+
+app.use(function(req,res,next){
+    const error  =  new Error("Path not found")
+    error.status = 404;
+    next(error)
+})
+
+app.use((error,req,res) => {
+    res.status(error.status || 500)
+    res.json({
+        error:{
+            message : error.message
+        }
+    })
 })
 
 // eslint-disable-next-line no-console
