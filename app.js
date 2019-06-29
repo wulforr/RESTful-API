@@ -16,8 +16,8 @@ app.use(morgan('dev'))
 
 const userSchema = new mongoose.Schema({
     _id: mongoose.Schema.Types.ObjectId,
-    name: String,
-    price: Number
+    name: {type:String, required:true},
+    price: {type:Number, required:true}
 })
 
 let product = mongoose.model("User",userSchema);
@@ -35,6 +35,10 @@ app.use((req,res,next) => {
     next()
 })
 
+
+//Add a product
+
+
 app.post("/addprod" ,(req,res) => {
     let prodname = req.body.name
     let price = req.body.price
@@ -42,30 +46,74 @@ app.post("/addprod" ,(req,res) => {
         "_id" : mongoose.Types.ObjectId(),
         "name" : prodname,
         "price":price
-    },function(err,respon){
-        if (err)
-        console.log(err)
-        else
-        res.send(respon)
     })
+    .then(res => {
+        res.json({
+            _id:res._id,
+            name:res.name,
+            price:res.price,
+            request:{
+                method:"GET",
+                url: "localhost:3000/prod?name=" + res.name 
+            }
+        })
+    }
+    )
+    .catch(err => res.json({
+        message1:err
+    }))
 })
+
+
+// Fetch the productsrs
 
 app.get("/prod",(req,res) => {
     let prodname = req.query.name
-    product.find({name:prodname},(err,respon) =>{
-        if(err)
-        console.log(err)
-        else
-        {
-            if(respon.length == 0)
+    if(prodname == undefined)
+    {
+        product.find({})
+        .select("name price _id")
+        .exec()
+        .then(data => {
+            if(data.length == 0)
             res.send("Not Found")
             else
-            res.send(respon)
-
-        }
+            {
+            const response = {
+                count: data.length,
+                products : data
+            }
+            res.send(response)
+            }
+        })
+        .catch(err => res.json({"message":err})
+        )
+    }
+    else{
+        product.find({name:prodname})
+        .select("name price _id")
+        .exec()
+        .then(data => {
+            if(data.length == 0)
+            res.send("Not Found")
+            else
+            {
+            const response = {
+                count: data.length,
+                products : data
+            }
+            res.send(response)
+            }
+        })
+        .catch(err => res.json({"message":err})
+        )
         
-    })
+    }
 })
+
+
+// Update a product
+
 
 app.patch("/:prodId",(req,res) => {
     let prodid = req.params.prodId
@@ -82,6 +130,8 @@ app.patch("/:prodId",(req,res) => {
 })
 
 
+
+// delete a product
 
 app.delete("/:prodId",(req,res) => {
     let prodid = req.params.prodId
