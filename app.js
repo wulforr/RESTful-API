@@ -47,21 +47,22 @@ app.post("/addprod" ,(req,res) => {
         "name" : prodname,
         "price":price
     })
-    .then(res => {
+    .then(item => {
+        console.log(item)
         res.json({
-            _id:res._id,
-            name:res.name,
-            price:res.price,
+            _id:item._id,
+            name:item.name,
+            price:item.price,
             request:{
                 method:"GET",
-                url: "localhost:3000/prod?name=" + res.name 
+                url: "localhost:3000/prod?name=" + item.name 
             }
         })
     }
     )
     .catch(err => res.json({
-        message1:err
-    }))
+         message1:err
+     }))
 })
 
 
@@ -157,6 +158,8 @@ app.use((error,req,res) => {
         }
     })
 })
+
+
 
 // eslint-disable-next-line no-console
 app.listen(process.env.PORT || 3000 , () => console.log("server started"));
