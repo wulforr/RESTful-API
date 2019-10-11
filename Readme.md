@@ -6,3 +6,5 @@ An API to <ul>
 <li>Update a product in database</li>
 <li>Delete a product from database</li>
 </ul>
+
+This project uses MongoDB as database.
